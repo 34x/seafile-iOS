@@ -352,7 +352,16 @@ enum SHARE_STATUS {
     if (self.state == PREVIEW_QL_SUBVIEW) {
         self.qlSubViewController.view.frame = r;
     } else if (self.state == PREVIEW_PHOTO){
-        self.mwPhotoBrowser.view.frame = r;
+        if (IsIpad()) {
+            self.mwPhotoBrowser.view.frame = r;
+        } else {
+            UIDeviceOrientation orientation = (UIDeviceOrientation)[UIApplication sharedApplication].statusBarOrientation;
+            if (orientation == UIDeviceOrientationPortrait || orientation == UIDeviceOrientationPortraitUpsideDown) {
+                self.mwPhotoBrowser.view.frame = r;
+            } else {
+                self.mwPhotoBrowser.view.frame = CGRectMake(self.view.frame.origin.x, 32, self.view.frame.size.width, self.view.frame.size.height - 32);
+            }
+        }
     } else {
         if (self.view.subviews.count > 1) {
             UIView *v = [self.view.subviews objectAtIndex:0];
