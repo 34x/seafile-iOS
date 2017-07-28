@@ -349,6 +349,9 @@ enum SHARE_STATUS {
 {
     [super viewWillLayoutSubviews];
     CGRect r = CGRectMake(self.view.frame.origin.x, 64, self.view.frame.size.width, self.view.frame.size.height - 64);
+    if (IsIpad()) {
+        r = CGRectMake(self.view.frame.origin.x, 0, self.view.frame.size.width, self.view.frame.size.height - 0);
+    }
     if (self.state == PREVIEW_QL_SUBVIEW) {
         self.qlSubViewController.view.frame = r;
     } else if (self.state == PREVIEW_PHOTO){
