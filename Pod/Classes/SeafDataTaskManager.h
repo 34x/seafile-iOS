@@ -13,10 +13,15 @@
 #import "SeafConnection.h"
 #import "SeafUploadFile.h"
 
+typedef void(^SyncBlock)();
 // Manager for background download/upload tasks, retry if failed.
 @interface SeafDataTaskManager : NSObject
 
 @property (readonly) ALAssetsLibrary *assetsLibrary;
+@property (nonatomic, strong) NSMutableArray *uploadingList;
+@property (nonatomic, strong) NSMutableArray *downloadingList;
+
+@property (nonatomic, copy) SyncBlock trySyncBlock;
 
 + (SeafDataTaskManager *)sharedObject;
 
@@ -24,6 +29,9 @@
 
 - (unsigned long)backgroundUploadingNum;
 - (unsigned long)backgroundDownloadingNum;
+
+- (NSInteger)uploadingCount;
+- (NSInteger)downloadingCount;
 
 - (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result;
 - (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result;

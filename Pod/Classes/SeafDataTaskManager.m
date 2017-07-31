@@ -9,6 +9,7 @@
 #import "SeafDataTaskManager.h"
 #import "SeafDir.h"
 #import "Debug.h"
+#import "SeafFile.h"
 
 @interface SeafDataTaskManager()
 @property (retain) NSMutableArray *uTasks;
@@ -34,6 +35,14 @@
     return object;
 }
 
+-(NSMutableArray *)downloadingList
+{
+    if (!_downloadingList) {
+        _downloadingList = [NSMutableArray array];
+    }
+    return _downloadingList;
+}
+
 -(id)init
 {
     if (self = [super init]) {
@@ -57,6 +66,11 @@
     return self.downloadingTasks.count + self.dTasks.count;
 }
 
+- (NSInteger)downloadingCount
+{
+    return self.downloadingList.count;
+}
+
 - (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result
 {
     @synchronized (self.downloadingTasks) {
@@ -64,6 +78,9 @@
             return;
         }
         [self.downloadingTasks removeObject:task];
+        if ([task isKindOfClass:[SeafFile class]]) {
+            [self.downloadingList removeObject:task];
+        }
     }
 
     Debug("file %@ download %ld, result=%d, failcnt=%ld", task.name, self.backgroundDownloadingNum, result, self.failedNum);
@@ -81,6 +98,9 @@
         }
     }
     [self performSelector:@selector(tick:) withObject:_taskTimer afterDelay:0.1];
+    if (self.trySyncBlock) {
+        self.trySyncBlock();
+    }
 }
 
 - (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result
@@ -105,6 +125,9 @@
         }
     }
     [self performSelector:@selector(tick:) withObject:_taskTimer afterDelay:0.1];
+    if (self.trySyncBlock) {
+        self.trySyncBlock();
+    }
 }
 
 - (void)tryUpload
@@ -139,12 +162,15 @@
             [self.uploadingTasks addObject:file];
         }
     }
+    if (self.trySyncBlock) {
+        self.trySyncBlock();
+    }
 }
 
 - (void)tryDownload
 {
     if (self.dTasks.count == 0) return;
-    Debug("tryDownload:\tdownloadingTasks:%ld dTasks:%ld failedNum:%ld", self.downloadingTasks.count, self.dTasks.count, self.failedNum);
+    Debug("tryDownload:\tdownloadingTasks:%ld dTasks:%ld failedNum:%ld", (unsigned long)self.downloadingTasks.count, (unsigned long)self.dTasks.count, self.failedNum);
     NSMutableArray *todo = [[NSMutableArray alloc] init];
     @synchronized (self.dTasks) {
         NSMutableArray *arr = [self.dTasks mutableCopy];
@@ -160,6 +186,12 @@
             [self.downloadingTasks addObject:task];
         }
         [task download];
+        if ([self.downloadingList containsObject:task] ) {
+            [self.downloadingList replaceObjectAtIndex:[self.downloadingList indexOfObject:task] withObject:task];
+        }
+    }
+    if (self.trySyncBlock) {
+        self.trySyncBlock();
     }
 }
 
@@ -250,6 +282,9 @@
         if (![self.dTasks containsObject:file] && ![self.downloadingTasks containsObject:file]) {
             [self.dTasks insertObject:file atIndex:0];
             Debug("Added download task %@: %ld", file.name, (unsigned long)self.dTasks.count);
+            if ([file isKindOfClass:[SeafFile class]]) {
+                [self.downloadingList addObject:file];
+            }
         }
     }
     [self tryDownload];

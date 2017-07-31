@@ -16,6 +16,7 @@
 #import "SeafDetailViewController.h"
 #import "SeafSettingsViewController.h"
 #import "SeafDirViewController.h"
+#import "SeafSyncInfoViewController.h"
 #import "SeafRepos.h"
 #import "SeafAvatar.h"
 #import "SeafStorage.h"
@@ -31,6 +32,7 @@ enum {
     SECTION_ACCOUNT = 0,
     SECTION_CAMERA,
     SECTION_CONTACTS,
+    SECTION_UPDOWNLOAD,
     SECTION_CACHE,
     SECTION_ENC,
     SECTION_ABOUT,
@@ -43,6 +45,12 @@ enum CAMERA_CELL{
     CELL_CAMERA_WIFIONLY,
     CELL_CAMERA_BACKGROUND,
     CELL_CAMERA_DESTINATION,
+    CELL_CAMERA_UPLOADING,
+};
+
+enum UPDOWNLOAD_CELL{
+    CELL_UPLOAD = 0,
+    CELL_DOWNLOAD,
 };
 
 enum CONTACTS_CELL{
@@ -92,6 +100,8 @@ enum {
 @property (strong, nonatomic) IBOutlet UITableViewCell *lastBackupTimeCell;
 @property (strong, nonatomic) IBOutlet UITableViewCell *uploadContactsCell;
 @property (strong, nonatomic) IBOutlet UITableViewCell *restoreContactsCell;
+@property (weak, nonatomic) IBOutlet UITableViewCell *uploadingCell;
+@property (weak, nonatomic) IBOutlet UITableViewCell *downlingCell;
 
 @property (strong, nonatomic) IBOutlet UILabel *logOutLabel;
 @property (strong, nonatomic) IBOutlet UILabel *autoCameraUploadLabel;
@@ -383,6 +393,11 @@ enum {
     _version = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
     _versionCell.detailTextLabel.text = _version;
     [self configureView];
+    
+    WS(weakSelf);
+    SeafDataTaskManager.sharedObject.trySyncBlock = ^{
+        [weakSelf updateSyncInfo];
+    };
 }
 
 - (void)viewDidAppear:(BOOL)animated
@@ -448,8 +463,15 @@ enum {
     _autoClearPasswdSwitch.on = _connection.autoClearRepoPasswd;
     _localDecrySwitch.on = _connection.localDecryptionEnabled;
     _serverCell.detailTextLabel.text = [_connection.address trimUrl];
-
+    
+    [self updateSyncInfo];
+    
     [self.tableView reloadData];
+}
+
+-(void)updateSyncInfo{
+    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.backgroundUploadingNum];
+    _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.downloadingCount];
 }
 
 - (void)updateAccountInfo
@@ -578,6 +600,17 @@ enum {
                 }
             }];
         }
+    } else if (indexPath.section == SECTION_UPDOWNLOAD) {
+        Debug("selected %ld, autoSync: %d", (long)indexPath.row, self.autoSync);
+        if (indexPath.row == CELL_UPLOAD) {
+            SeafSyncInfoViewController *syncInfoVC = [[SeafSyncInfoViewController alloc] initWithType:UPLOAD_DETAIL];
+            syncInfoVC.hidesBottomBarWhenPushed = YES;
+            [self.navigationController pushViewController:syncInfoVC animated:YES];
+        } else if (indexPath.row == CELL_DOWNLOAD) {
+            SeafSyncInfoViewController *syncInfoVC = [[SeafSyncInfoViewController alloc] initWithType:DOWNLOAD_DETAIL];
+            syncInfoVC.hidesBottomBarWhenPushed = YES;
+            [self.navigationController pushViewController:syncInfoVC animated:YES];
+        }
     } else if (indexPath.section == SECTION_CACHE) {
         Debug("selected %ld, autoSync: %d", (long)indexPath.row, self.autoSync);
         if (indexPath.row == CELL_CACHE_SIZE) {
@@ -635,6 +668,7 @@ enum {
         NSLocalizedString(@"Account Info", @"Seafile"),
         NSLocalizedString(@"Camera Upload", @"Seafile"),
         NSLocalizedString(@"Contacts Backup", @"Seafile"),
+        NSLocalizedString(@"upload & download", @"Seafile"),
         NSLocalizedString(@"Cache", @"Seafile"),
         NSLocalizedString(@"Encrypted Libraries", @"Seafile"),
         NSLocalizedString(@"About", @"Seafile"),

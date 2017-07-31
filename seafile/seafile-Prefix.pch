@@ -16,4 +16,6 @@
     #import <MobileCoreServices/MobileCoreServices.h>
 #endif
 
+#define WS(weakSelf)  __weak __typeof(&*self)weakSelf = self;
+
 #define SEAFILE_APP
