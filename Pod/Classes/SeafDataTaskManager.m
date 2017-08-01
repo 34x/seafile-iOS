@@ -35,7 +35,7 @@
     return object;
 }
 
--(NSMutableArray *)downloadingList
+- (NSMutableArray *)downloadingList
 {
     if (!_downloadingList) {
         _downloadingList = [NSMutableArray array];
@@ -43,7 +43,15 @@
     return _downloadingList;
 }
 
--(id)init
+- (NSMutableArray *)uploadingList
+{
+    if (!_uploadingList) {
+        _uploadingList = [NSMutableArray array];
+    }
+    return _uploadingList;
+}
+
+- (id)init
 {
     if (self = [super init]) {
         _assetsLibrary = [[ALAssetsLibrary alloc] init];
@@ -71,6 +79,11 @@
     return self.downloadingList.count;
 }
 
+- (NSInteger)uploadingCount
+{
+    return self.uploadingList.count;
+}
+
 - (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result
 {
     @synchronized (self.downloadingTasks) {
@@ -80,6 +93,9 @@
         [self.downloadingTasks removeObject:task];
         if ([task isKindOfClass:[SeafFile class]]) {
             [self.downloadingList removeObject:task];
+            if (self.trySyncBlock) {
+                self.trySyncBlock();
+            }
         }
     }
 
@@ -98,9 +114,6 @@
         }
     }
     [self performSelector:@selector(tick:) withObject:_taskTimer afterDelay:0.1];
-    if (self.trySyncBlock) {
-        self.trySyncBlock();
-    }
 }
 
 - (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result
@@ -108,6 +121,12 @@
     Debug("upload %ld, result=%d, file=%@, udir=%@", (long)self.uploadingTasks.count, result, file.lpath, file.udir.path);
     @synchronized (self.uploadingTasks) {
         [self.uploadingTasks removeObject:file];
+        if ([file isKindOfClass:[SeafUploadFile class]]) {
+            [self.uploadingList removeObject:file];
+            if (self.trySyncBlock) {
+                self.trySyncBlock();
+            }
+        }
     }
 
     if (result) {
@@ -148,7 +167,7 @@
         }
     }
     double delayInMs = 400.0;
-    int uploadingCount = self.uploadingTasks.count;
+    NSInteger uploadingCount = self.uploadingTasks.count;
     for (int i = 0; i < todo.count; i++) {
         SeafUploadFile *file = [todo objectAtIndex:i];
         if (!file.udir) continue;
@@ -161,9 +180,6 @@
         @synchronized (self.uploadingTasks) {
             [self.uploadingTasks addObject:file];
         }
-    }
-    if (self.trySyncBlock) {
-        self.trySyncBlock();
     }
 }
 
@@ -189,9 +205,6 @@
         if ([self.downloadingList containsObject:task] ) {
             [self.downloadingList replaceObjectAtIndex:[self.downloadingList indexOfObject:task] withObject:task];
         }
-    }
-    if (self.trySyncBlock) {
-        self.trySyncBlock();
     }
 }
 
@@ -268,9 +281,15 @@
 {
     [file resetFailedAttempt];
     @synchronized (self.uTasks) {
-        if (![self.uTasks containsObject:file] && ![self.uploadingTasks containsObject:file])
+        if (![self.uTasks containsObject:file] && ![self.uploadingTasks containsObject:file]) {
             [self.uTasks addObject:file];
-        else
+            if ([file isKindOfClass:[SeafUploadFile class]]) {
+                [self.uploadingList addObject:file];
+                if (self.trySyncBlock) {
+                    self.trySyncBlock();
+                }
+            }
+        } else
             Warning("upload task file %@ already exist", file.lpath);
     }
     [self performSelectorInBackground:@selector(tryUpload) withObject:file];
@@ -284,6 +303,9 @@
             Debug("Added download task %@: %ld", file.name, (unsigned long)self.dTasks.count);
             if ([file isKindOfClass:[SeafFile class]]) {
                 [self.downloadingList addObject:file];
+                if (self.trySyncBlock) {
+                    self.trySyncBlock();
+                }
             }
         }
     }

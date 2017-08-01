@@ -7,13 +7,13 @@
 //
 
 #import "SeafSyncInfoViewController.h"
-#import "SeafCell.h"
+#import "SeafSyncInfoCell.h"
 #import "Debug.h"
 #import "SeafDataTaskManager.h"
 #import "SeafFile.h"
 #import "SeafPhoto.h"
 
-static NSString *cellIdentifier = @"SeafCell";
+static NSString *cellIdentifier = @"SeafSyncInfoCell";
 
 @interface SeafSyncInfoViewController ()<SeafDentryDelegate>
 
@@ -38,7 +38,7 @@ static NSString *cellIdentifier = @"SeafCell";
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.tableView.estimatedRowHeight = 50.0;
     self.tableView.tableFooterView = [UIView new];
-    [self.tableView registerNib:[UINib nibWithNibName:@"SeafCell" bundle:nil]
+    [self.tableView registerNib:[UINib nibWithNibName:@"SeafSyncInfoCell" bundle:nil]
          forCellReuseIdentifier:cellIdentifier];
     
     if([self respondsToSelector:@selector(edgesForExtendedLayout)])
@@ -53,7 +53,7 @@ static NSString *cellIdentifier = @"SeafCell";
     if (self.detailType == DOWNLOAD_DETAIL) {
         self.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.downloadingList];
     } else {
-        self.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.downloadingList];
+        self.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.uploadingList];
     }
     [self.tableView reloadData];
     
@@ -82,18 +82,29 @@ static NSString *cellIdentifier = @"SeafCell";
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    SeafCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier forIndexPath:indexPath];
+    SeafSyncInfoCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier forIndexPath:indexPath];
+    [cell.progressView setProgress:0];
     SeafFile *sfile = self.syncArray[indexPath.row];
     sfile.delegate = self;
+
+    cell.nameLabel.text = sfile.name;
+    cell.pathLabel.text = sfile.path;
+    cell.iconView.image = sfile.icon;
     
-    cell.textLabel.text = sfile.name;
-    cell.detailTextLabel.text = sfile.detailText;
-    cell.imageView.image = sfile.icon;
-    cell.badgeLabel.text = nil;
-    cell.downloadingIndicator.hidden = YES;
-    cell.downloadStatusImageView.hidden = YES;
-    [cell.progressView setProgress:0];
-    [cell.cacheStatusWidthConstraint setConstant:0.0f];
+    CGSize itemSize = CGSizeMake(40, 40);
+    UIGraphicsBeginImageContext(itemSize);
+    CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
+    [cell.iconView.image drawInRect:imageRect];
+    cell.iconView.image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    cell.sizeLabel.text = sfile.detailText;
+    
+    if (sfile.state == SEAF_DENTRY_INIT) {
+        cell.progressView.hidden = YES;
+    } else {
+        cell.progressView.hidden = NO;
+    }
     
     return cell;
 }
@@ -103,9 +114,10 @@ static NSString *cellIdentifier = @"SeafCell";
 {
     Debug(@"%f", progress);
     if (entry.state == SEAF_DENTRY_LOADING) {
-        SeafCell *cell = [self getEntryCell:entry];
+        SeafSyncInfoCell *cell = [self getEntryCell:entry];
         if (cell) {
             if (progress) {
+                cell.progressView.hidden = NO;
                 [cell.progressView setProgress:progress];
             }
         }
@@ -122,14 +134,14 @@ static NSString *cellIdentifier = @"SeafCell";
     
 }
 
-- (SeafCell *)getEntryCell:(id)entry
+- (SeafSyncInfoCell *)getEntryCell:(id)entry
 {
     NSUInteger index = [self.syncArray indexOfObject:entry];
     if (index == NSNotFound)
         return nil;
     @try {
         NSIndexPath *path = [NSIndexPath indexPathForRow:index inSection:0];
-        return (SeafCell *)[self.tableView cellForRowAtIndexPath:path];
+        return (SeafSyncInfoCell *)[self.tableView cellForRowAtIndexPath:path];
     } @catch(NSException *exception) {
         Warning("Something wrong %@", exception);
         return nil;
