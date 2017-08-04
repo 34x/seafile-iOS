@@ -30,8 +30,8 @@ typedef void(^SyncBlock)();
 - (unsigned long)backgroundUploadingNum;
 - (unsigned long)backgroundDownloadingNum;
 
-- (NSInteger)uploadingCount;
-- (NSInteger)downloadingCount;
+- (NSInteger)uploadingNum;
+- (NSInteger)downloadingNum;
 
 - (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result;
 - (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result;

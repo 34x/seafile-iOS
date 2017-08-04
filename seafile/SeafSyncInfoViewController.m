@@ -83,56 +83,44 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     SeafSyncInfoCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier forIndexPath:indexPath];
-    [cell.progressView setProgress:0];
+    
     SeafFile *sfile = self.syncArray[indexPath.row];
-    sfile.delegate = self;
-
-    cell.nameLabel.text = sfile.name;
-    cell.pathLabel.text = sfile.path;
-    cell.iconView.image = sfile.icon;
-    
-    CGSize itemSize = CGSizeMake(40, 40);
-    UIGraphicsBeginImageContext(itemSize);
-    CGRect imageRect = CGRectMake(0.0, 0.0, itemSize.width, itemSize.height);
-    [cell.iconView.image drawInRect:imageRect];
-    cell.iconView.image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    
-    cell.sizeLabel.text = sfile.detailText;
-    
-    if (sfile.state == SEAF_DENTRY_INIT) {
-        cell.progressView.hidden = YES;
-    } else {
-        cell.progressView.hidden = NO;
-    }
-    
+    [cell showCellWithSFile:sfile];
     return cell;
 }
 
-#pragma mark - SeafDentryDelegate
-- (void)download:(SeafBase *)entry progress:(float)progress
-{
-    Debug(@"%f", progress);
-    if (entry.state == SEAF_DENTRY_LOADING) {
-        SeafSyncInfoCell *cell = [self getEntryCell:entry];
-        if (cell) {
-            if (progress) {
-                cell.progressView.hidden = NO;
-                [cell.progressView setProgress:progress];
-            }
-        }
-    }
-}
-
-- (void)download:(SeafBase *)entry complete:(BOOL)updated
-{
-    
-}
-
-- (void)download:(SeafBase *)entry failed:(NSError *)error
-{
-    
-}
+//#pragma mark - SeafDentryDelegate
+//- (void)download:(SeafBase *)entry progress:(float)progress
+//{
+//    Debug(@"%f", progress);
+//    if (entry.state == SEAF_DENTRY_LOADING) {
+//        SeafSyncInfoCell *cell = [self getEntryCell:entry];
+//        if (cell) {
+//            if (progress) {
+//                cell.progressView.hidden = NO;
+//                [cell.progressView setProgress:progress];
+//            }
+//        }
+//    }
+//}
+//
+//- (void)download:(SeafBase *)entry complete:(BOOL)updated
+//{
+//    SeafSyncInfoCell *cell = [self getEntryCell:entry];
+//    if (cell) {
+//        cell.progressView.hidden = YES;
+//        cell.statusLabel.text = @"下载完成";
+//    }
+//}
+//
+//- (void)download:(SeafBase *)entry failed:(NSError *)error
+//{
+//    SeafSyncInfoCell *cell = [self getEntryCell:entry];
+//    if (cell) {
+//        cell.progressView.hidden = YES;
+//        cell.statusLabel.text = @"下载失败";
+//    }
+//}
 
 - (SeafSyncInfoCell *)getEntryCell:(id)entry
 {

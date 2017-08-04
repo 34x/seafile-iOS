@@ -20,6 +20,9 @@
 @property unsigned long failedNum;
 @property NSUserDefaults *storage;
 
+@property (nonatomic, assign) NSInteger downloadingCount;
+@property (nonatomic, assign) NSInteger uploadingCount;
+
 @property NSTimer *taskTimer;
 
 @end
@@ -74,14 +77,14 @@
     return self.downloadingTasks.count + self.dTasks.count;
 }
 
-- (NSInteger)downloadingCount
+- (NSInteger)downloadingNum
 {
-    return self.downloadingList.count;
+    return self.downloadingCount;
 }
 
-- (NSInteger)uploadingCount
+- (NSInteger)uploadingNum
 {
-    return self.uploadingList.count;
+    return self.uploadingCount;
 }
 
 - (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result
@@ -92,7 +95,7 @@
         }
         [self.downloadingTasks removeObject:task];
         if ([task isKindOfClass:[SeafFile class]]) {
-            [self.downloadingList removeObject:task];
+            self.downloadingCount -= 1;
             if (self.trySyncBlock) {
                 self.trySyncBlock();
             }
@@ -122,7 +125,7 @@
     @synchronized (self.uploadingTasks) {
         [self.uploadingTasks removeObject:file];
         if ([file isKindOfClass:[SeafUploadFile class]]) {
-            [self.uploadingList removeObject:file];
+            self.uploadingCount -= 1;
             if (self.trySyncBlock) {
                 self.trySyncBlock();
             }
@@ -285,6 +288,7 @@
             [self.uTasks addObject:file];
             if ([file isKindOfClass:[SeafUploadFile class]]) {
                 [self.uploadingList addObject:file];
+                self.uploadingCount += 1;
                 if (self.trySyncBlock) {
                     self.trySyncBlock();
                 }
@@ -303,6 +307,7 @@
             Debug("Added download task %@: %ld", file.name, (unsigned long)self.dTasks.count);
             if ([file isKindOfClass:[SeafFile class]]) {
                 [self.downloadingList addObject:file];
+                self.downloadingCount += 1;
                 if (self.trySyncBlock) {
                     self.trySyncBlock();
                 }

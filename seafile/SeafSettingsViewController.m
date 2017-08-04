@@ -470,8 +470,8 @@ enum {
 }
 
 -(void)updateSyncInfo{
-    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.uploadingCount];
-    _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.downloadingCount];
+    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.uploadingNum];
+    _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.downloadingNum];
 }
 
 - (void)updateAccountInfo

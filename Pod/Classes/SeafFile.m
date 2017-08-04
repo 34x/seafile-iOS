@@ -33,7 +33,6 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
 @property (nonatomic, strong) UIImage *thumb;
 @property NSURLSessionDownloadTask *task;
 @property NSURLSessionDownloadTask *thumbtask;
-@property (strong) NSProgress *progress;
 @property (strong) SeafUploadFile *ufile;
 @property (strong) NSArray *blkids;
 @property int index;

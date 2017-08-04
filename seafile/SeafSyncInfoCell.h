@@ -7,6 +7,8 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "SeafFile.h"
+#import "SeafUploadFile.h"
 
 @interface SeafSyncInfoCell : UITableViewCell
 
@@ -16,5 +18,8 @@
 @property (weak, nonatomic) IBOutlet UILabel *statusLabel;
 @property (weak, nonatomic) IBOutlet UILabel *sizeLabel;
 @property (weak, nonatomic) IBOutlet UIProgressView *progressView;
+
+- (void)showCellWithSFile:(SeafFile*)sfile;
+- (void)showCellWithUploadFile:(SeafUploadFile*)ufile;
 
 @end

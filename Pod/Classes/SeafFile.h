@@ -45,6 +45,7 @@ typedef void (^SeafFileDidDownloadBlock)(SeafFile* _Nonnull file, BOOL result);
 @property (readonly) long long filesize;
 @property (readonly) long long mtime;
 @property (strong, nullable) id <SeafFileUpdateDelegate> udelegate;
+@property (strong) NSProgress *progress;
 
 - (BOOL)isStarred;
 - (void)setStarred:(BOOL)starred;
