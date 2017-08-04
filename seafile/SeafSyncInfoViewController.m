@@ -89,39 +89,6 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
     return cell;
 }
 
-//#pragma mark - SeafDentryDelegate
-//- (void)download:(SeafBase *)entry progress:(float)progress
-//{
-//    Debug(@"%f", progress);
-//    if (entry.state == SEAF_DENTRY_LOADING) {
-//        SeafSyncInfoCell *cell = [self getEntryCell:entry];
-//        if (cell) {
-//            if (progress) {
-//                cell.progressView.hidden = NO;
-//                [cell.progressView setProgress:progress];
-//            }
-//        }
-//    }
-//}
-//
-//- (void)download:(SeafBase *)entry complete:(BOOL)updated
-//{
-//    SeafSyncInfoCell *cell = [self getEntryCell:entry];
-//    if (cell) {
-//        cell.progressView.hidden = YES;
-//        cell.statusLabel.text = @"下载完成";
-//    }
-//}
-//
-//- (void)download:(SeafBase *)entry failed:(NSError *)error
-//{
-//    SeafSyncInfoCell *cell = [self getEntryCell:entry];
-//    if (cell) {
-//        cell.progressView.hidden = YES;
-//        cell.statusLabel.text = @"下载失败";
-//    }
-//}
-
 - (SeafSyncInfoCell *)getEntryCell:(id)entry
 {
     NSUInteger index = [self.syncArray indexOfObject:entry];
