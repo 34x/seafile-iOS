@@ -17,14 +17,20 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
 
 @interface SeafSyncInfoViewController ()<SeafDentryDelegate>
 
-@property (nonatomic, strong) NSArray *syncArray;
+@property (nonatomic, strong) NSMutableArray *flieArray;
 
 @end
 
 @implementation SeafSyncInfoViewController
 
--(instancetype)initWithType:(DETAILTYPE)type
-{
+-(NSMutableArray *)flieArray {
+    if (!_flieArray) {
+        _flieArray = [NSMutableArray array];
+    }
+    return _flieArray;
+}
+
+-(instancetype)initWithType:(DETAILTYPE)type {
     self = [super init];
     if (self) {
         self.detailType = type;
@@ -50,25 +56,26 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
         self.navigationItem.title = @"正在上传";
     }
     
-    if (self.detailType == DOWNLOAD_DETAIL) {
-        self.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.downloadingList];
-    } else {
-        self.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.uploadingList];
-    }
-    [self.tableView reloadData];
-    
+    [self addToFileArray];
+
     WS(weakSelf);
     SeafDataTaskManager.sharedObject.trySyncBlock = ^{
         @autoreleasepool {
-            if (weakSelf.detailType == DOWNLOAD_DETAIL) {
-                weakSelf.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.downloadingList];
-            } else {
-                weakSelf.syncArray = [NSArray arrayWithArray:SeafDataTaskManager.sharedObject.downloadingList];
-            }
+            [weakSelf addToFileArray];
         }
-        [weakSelf.tableView reloadData];
     };
+}
 
+- (void)addToFileArray {
+    for (SeafFile *file in SeafDataTaskManager.sharedObject.fileTasks) {
+        if (![self.flieArray containsObject:file]) {
+            [self.flieArray addObject:file];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.tableView reloadData];
+                
+            });
+        }
+    }
 }
 
 #pragma mark - Table view data source
@@ -78,64 +85,20 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.syncArray.count;
+    return self.flieArray.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     SeafSyncInfoCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier forIndexPath:indexPath];
     
-    SeafFile *sfile = self.syncArray[indexPath.row];
-    [cell showCellWithSFile:sfile];
+    if (self.detailType == DOWNLOAD_DETAIL) {
+        SeafFile *sfile = self.flieArray[indexPath.row];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [cell showCellWithSFile:sfile];
+        });
+    }
     return cell;
 }
-
-- (SeafSyncInfoCell *)getEntryCell:(id)entry
-{
-    NSUInteger index = [self.syncArray indexOfObject:entry];
-    if (index == NSNotFound)
-        return nil;
-    @try {
-        NSIndexPath *path = [NSIndexPath indexPathForRow:index inSection:0];
-        return (SeafSyncInfoCell *)[self.tableView cellForRowAtIndexPath:path];
-    } @catch(NSException *exception) {
-        Warning("Something wrong %@", exception);
-        return nil;
-    }
-}
-
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
-
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
-}
-*/
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];

@@ -1236,7 +1236,7 @@ enum {
         NSString *path = file.cachePath;
         if (!path) {
             [file setFileDownloadedBlock:block];
-            [SeafDataTaskManager.sharedObject addBackgroundDownloadTask:file];
+            [SeafDataTaskManager.sharedObject addFileDownloadTask:file];
         } else {
             block(file, true);
         }

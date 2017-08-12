@@ -12,14 +12,21 @@
 #import "SeafPreView.h"
 #import "SeafConnection.h"
 #import "SeafUploadFile.h"
+#import "SeafFile.h"
+#import "SeafThumb.h"
+#import "SeafAvatar.h"
 
 typedef void(^SyncBlock)();
 // Manager for background download/upload tasks, retry if failed.
 @interface SeafDataTaskManager : NSObject
 
 @property (readonly) ALAssetsLibrary *assetsLibrary;
-@property (nonatomic, strong) NSMutableArray *uploadingList;
-@property (nonatomic, strong) NSMutableArray *downloadingList;
+
+@property (nonatomic, strong) NSMutableArray *fileTasks;
+@property (nonatomic, strong) NSMutableArray *fileQueuedTasks;
+@property (nonatomic, strong) NSMutableArray *thumbTasks;
+@property (nonatomic, strong) NSMutableArray *thumbQueuedTasks;
+@property (nonatomic, strong) NSMutableArray *avatarTasks;
 
 @property (nonatomic, copy) SyncBlock trySyncBlock;
 
@@ -27,21 +34,26 @@ typedef void(^SyncBlock)();
 
 - (void)startTimer;
 
-- (unsigned long)backgroundUploadingNum;
-- (unsigned long)backgroundDownloadingNum;
-
-- (NSInteger)uploadingNum;
-- (NSInteger)downloadingNum;
-
-- (void)finishDownload:(id<SeafDownloadDelegate>)task result:(BOOL)result;
-- (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result;
-
 - (void)addBackgroundUploadTask:(SeafUploadFile *)file;
-- (void)addBackgroundDownloadTask:(id<SeafDownloadDelegate>)file;
+- (void)finishUpload:(SeafUploadFile *)file result:(BOOL)result;
 - (void)removeBackgroundUploadTask:(SeafUploadFile *)file;
-- (void)removeBackgroundDownloadTask:(id<SeafDownloadDelegate>)task;
+- (unsigned long)backgroundUploadingNum;
+
 - (void)cancelAutoSyncTasks:(SeafConnection *)conn;
 - (void)cancelAutoSyncVideoTasks:(SeafConnection *)conn;
 
 - (void)assetForURL:(NSURL *)assetURL resultBlock:(ALAssetsLibraryAssetForURLResultBlock)resultBlock failureBlock:(ALAssetsLibraryAccessFailureBlock)failureBlock;
+
+- (void)addFileDownloadTask:(SeafFile*)file;
+- (void)finishFileDownload:(SeafFile<SeafDownloadDelegate>*)file result:(BOOL)result;
+- (NSInteger)downloadingNum;
+
+- (void)addThumbDownloadTask:(SeafThumb*)thumb;
+- (void)finishThumbDownload:(SeafThumb<SeafDownloadDelegate> *)thumb result:(BOOL)result;
+
+- (void)removeBackgroundDownloadTask:(id<SeafDownloadDelegate>)task;
+
+- (void)addAvatarDownloadTask:(SeafAvatar*)avatar;
+- (void)finishAvatarDownloadTask:(SeafAvatar*)avatar result:(BOOL)result;
+
 @end

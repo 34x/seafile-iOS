@@ -49,8 +49,9 @@ enum CAMERA_CELL{
 };
 
 enum UPDOWNLOAD_CELL{
-    CELL_UPLOAD = 0,
-    CELL_DOWNLOAD,
+    CELL_DOWNLOAD = 0,
+    CELL_UPLOAD = 1,
+    
 };
 
 enum CONTACTS_CELL{
@@ -470,7 +471,7 @@ enum {
 }
 
 -(void)updateSyncInfo{
-    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.uploadingNum];
+    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.backgroundUploadingNum];
     _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.downloadingNum];
 }
 
@@ -689,7 +690,7 @@ enum {
 #if DEBUG
         remainStr = [remainStr stringByAppendingFormat:@"  U:%lu D:%lu",
                      SeafDataTaskManager.sharedObject.backgroundUploadingNum,
-                     SeafDataTaskManager.sharedObject.backgroundDownloadingNum];
+                     (long)SeafDataTaskManager.sharedObject.downloadingNum];
 #endif
         return [sectionNames[section] stringByAppendingFormat:@"\t %@", remainStr];
     }
@@ -697,7 +698,7 @@ enum {
     else if (section == SECTION_CAMERA) {
         NSString *remainStr = [NSString stringWithFormat:@"  U:%lu D:%lu",
                                SeafDataTaskManager.sharedObject.backgroundUploadingNum,
-                               SeafDataTaskManager.sharedObject.backgroundDownloadingNum];
+                               (long)SeafDataTaskManager.sharedObject.downloadingNum];
         return [sectionNames[section] stringByAppendingFormat:@"\t %@", remainStr];
     }
 #endif
