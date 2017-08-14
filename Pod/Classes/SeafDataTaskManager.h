@@ -17,6 +17,7 @@
 #import "SeafAvatar.h"
 
 typedef void(^SyncBlock)();
+typedef void(^DownLoadFinshBlock)(SeafFile *file);
 // Manager for background download/upload tasks, retry if failed.
 @interface SeafDataTaskManager : NSObject
 
@@ -24,11 +25,13 @@ typedef void(^SyncBlock)();
 
 @property (nonatomic, strong) NSMutableArray *fileTasks;
 @property (nonatomic, strong) NSMutableArray *fileQueuedTasks;
+@property (nonatomic, strong) NSMutableArray *fileDownloadingTasks;
 @property (nonatomic, strong) NSMutableArray *thumbTasks;
 @property (nonatomic, strong) NSMutableArray *thumbQueuedTasks;
 @property (nonatomic, strong) NSMutableArray *avatarTasks;
 
 @property (nonatomic, copy) SyncBlock trySyncBlock;
+@property (nonatomic, copy) DownLoadFinshBlock finishBlock;
 
 + (SeafDataTaskManager *)sharedObject;
 

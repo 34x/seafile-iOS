@@ -47,6 +47,13 @@
     return _fileTasks;
 }
 
+- (NSMutableArray *)fileDownloadingTasks {
+    if (!_fileDownloadingTasks) {
+        _fileDownloadingTasks = [NSMutableArray array];
+    }
+    return _fileDownloadingTasks;
+}
+
 - (NSMutableArray *)thumbTasks {
     if (!_thumbTasks) {
         _thumbTasks = [NSMutableArray array];
@@ -330,14 +337,32 @@
     [self startNextTask];
 }
 
+- (void)startNextTask {
+    if ([self isActiveDownloadingFileCountBelowMaximumLimit]) {
+        SeafFile *file = [self dequeueTask];
+        if (file) {
+            self.activeFileDownloadingCount += 1;
+            [file download];
+            [self.fileDownloadingTasks addObject:file];
+            [self.fileTasks removeObject:file];
+            Debug("downloading file task %@: %ld", file.name, (unsigned long)self.fileQueuedTasks.count);
+        }
+    }
+    if (self.trySyncBlock) {
+        self.trySyncBlock();
+    }
+}
+
 -(void)finishFileDownload:(SeafFile<SeafDownloadDelegate> *)file result:(BOOL)result {
     if ([self.fileQueuedTasks containsObject:file]) {
-        if (self.trySyncBlock) {
-            self.trySyncBlock();
-        }
         Debug("finish file task %@: %ld", file.name, (unsigned long)self.fileDownloadingCount);
         if (result) {
             [self.fileQueuedTasks removeObject:file];
+            [self.fileDownloadingTasks removeObject:file];
+            if (self.finishBlock) {
+                self.finishBlock(file);
+            }
+            [self.fileTasks addObject:file];
             if (self.fileDownloadingCount > 0) {
                 self.fileDownloadingCount -= 1;
             }
@@ -345,22 +370,10 @@
         if (self.activeFileDownloadingCount > 0) {
             self.activeFileDownloadingCount -= 1;
         }
-        [self startNextTask];
-        
-    }
-}
-
-- (void)startNextTask {
-    if (self.trySyncBlock) {
-        self.trySyncBlock();
-    }
-    if ([self isActiveDownloadingFileCountBelowMaximumLimit]) {
-        SeafFile *file = [self dequeueTask];
-        if (file) {
-            self.activeFileDownloadingCount += 1;
-            [file download];
-            Debug("downloading file task %@: %ld", file.name, (unsigned long)self.fileQueuedTasks.count);
+        if (self.trySyncBlock) {
+            self.trySyncBlock();
         }
+        [self startNextTask];
     }
 }
 
