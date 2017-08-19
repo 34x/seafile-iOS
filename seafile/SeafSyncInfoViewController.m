@@ -59,7 +59,7 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
         self.edgesForExtendedLayout = UIRectEdgeAll;
 
     if (self.detailType == DOWNLOAD_DETAIL) {
-        self.navigationItem.title = @"正在下载";
+        self.navigationItem.title = NSLocalizedString(@"Downloading", @"Seafile");
     } else {
         self.navigationItem.title = @"正在上传";
     }
@@ -118,9 +118,9 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
     NSString *text = nil;
     if (section == 0) {
-        text = @"正在下载";
+        text = NSLocalizedString(@"Downloading", @"Seafile");
     } else {
-        text = @"下载完成";
+        text = NSLocalizedString(@"Completed", @"Seafile");
     }
     UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.bounds.size.width, 30)];
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(10, 3, tableView.bounds.size.width - 10, 18)];

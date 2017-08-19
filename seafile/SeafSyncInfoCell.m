@@ -51,10 +51,10 @@
         }
     } else if (sfile.state == SEAF_DENTRY_SUCCESS){
         self.progressView.hidden = YES;
-        self.statusLabel.text = @"已完成";
+        self.statusLabel.text = NSLocalizedString(@"Completed", @"Seafile");
     } else if (sfile.state == SEAF_DENTRY_FAILURE) {
         self.progressView.hidden = YES;
-        self.statusLabel.text = @"下载失败";
+        self.statusLabel.text = NSLocalizedString(@"Failed", @"Seafile");
     }
 }
 
@@ -75,10 +75,10 @@
         @strongify(self);
         if (success) {
             self.progressView.hidden = YES;
-            self.statusLabel.text = @"已完成";
+            self.statusLabel.text = NSLocalizedString(@"Completed", @"Seafile");
         } else {
             self.progressView.hidden = NO;
-            self.statusLabel.text = @"上传中";
+            self.statusLabel.text = NSLocalizedString(@"uploading", @"Seafile");
         }
     };
 }

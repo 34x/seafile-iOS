@@ -361,6 +361,8 @@ enum {
     _lastBackupTimeCell.textLabel.text = NSLocalizedString(@"Last Backup Time", @"Seafile");
     _uploadContactsCell.textLabel.text = NSLocalizedString(@"Backup Contacts", @"Seafile");
     _restoreContactsCell.textLabel.text = NSLocalizedString(@"Restore Contacts", @"Seafile");
+    
+    _downlingCell.textLabel.text = NSLocalizedString(@"Downloading", @"Seafile");
 
     _cacheCell.textLabel.text = NSLocalizedString(@"Local Cache", @"Seafile");
     _wipeCacheCell.textLabel.text = NSLocalizedString(@"Wipe Cache", @"Seafile");
