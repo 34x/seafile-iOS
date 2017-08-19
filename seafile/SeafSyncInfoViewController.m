@@ -72,29 +72,28 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
             [weakSelf addToFileArray];
         }
     };
+
     SeafDataTaskManager.sharedObject.finishBlock = ^(SeafFile *file) {
         [weakSelf.downloadingArray removeObject:file];
+        [weakSelf.fileArray addObject:file];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf.tableView reloadData];
+        });
     };
 }
 
 - (void)addToFileArray {
-    for (SeafFile *file in SeafDataTaskManager.sharedObject.fileTasks) {
-        if (file.state == SEAF_DENTRY_INIT || file.state == SEAF_DENTRY_SUCCESS || file.state == SEAF_DENTRY_FAILURE) {
-            if (![self.fileArray containsObject:file]) {
-                [self.fileArray addObject:file];
+    if (SeafDataTaskManager.sharedObject.fileTasks.count > 0) {
+        for (SeafFile *file in SeafDataTaskManager.sharedObject.fileTasks) {
+            if (file.state != SEAF_DENTRY_SUCCESS || file.state != SEAF_DENTRY_FAILURE) {
+                if (![self.downloadingArray containsObject:file]) {
+                    [self.downloadingArray addObject:file];
+                }
             }
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.tableView reloadData];
+            });
         }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.tableView reloadData];
-        });
-    }
-    for (SeafFile *dfile in SeafDataTaskManager.sharedObject.fileDownloadingTasks) {
-        if (![self.downloadingArray containsObject:dfile]) {
-            [self.downloadingArray addObject:dfile];
-        }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.tableView reloadData];
-        });
     }
 }
 

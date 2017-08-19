@@ -47,13 +47,6 @@
     return _fileTasks;
 }
 
-- (NSMutableArray *)fileDownloadingTasks {
-    if (!_fileDownloadingTasks) {
-        _fileDownloadingTasks = [NSMutableArray array];
-    }
-    return _fileDownloadingTasks;
-}
-
 - (NSMutableArray *)thumbTasks {
     if (!_thumbTasks) {
         _thumbTasks = [NSMutableArray array];
@@ -318,11 +311,13 @@
 #pragma mark- download file
 -(void)addFileDownloadTask:(SeafFile *)file {
     @synchronized (self.fileTasks) {
-        if (![self.fileTasks containsObject:file]) {
-            [self.fileTasks addObject:file];
-            self.fileDownloadingCount += 1;
-            [self tryDownLoadFile];
-            Debug("Added file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
+        if (file.state != SEAF_DENTRY_SUCCESS) {
+            if (![self.fileTasks containsObject:file]) {
+                [self.fileTasks addObject:file];
+                self.fileDownloadingCount += 1;
+                [self tryDownLoadFile];
+                Debug("Added file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
+            }
         }
     }
 }
@@ -330,7 +325,7 @@
 - (void)tryDownLoadFile {
     if (self.fileTasks.count == 0) return;
     for (SeafFile *file in self.fileTasks) {
-        if (![self.fileQueuedTasks containsObject:file] && file.state == SEAF_DENTRY_INIT) {
+        if (![self.fileQueuedTasks containsObject:file]) {
             [self.fileQueuedTasks addObject:file];
         }
     }
@@ -341,16 +336,17 @@
     if ([self isActiveDownloadingFileCountBelowMaximumLimit]) {
         SeafFile *file = [self dequeueTask];
         if (file) {
-            self.activeFileDownloadingCount += 1;
             [file download];
-            [self.fileDownloadingTasks addObject:file];
+            self.activeFileDownloadingCount += 1;
             [self.fileTasks removeObject:file];
             Debug("downloading file task %@: %ld", file.name, (unsigned long)self.fileQueuedTasks.count);
+            [self startNextTask];
         }
     }
     if (self.trySyncBlock) {
         self.trySyncBlock();
     }
+    
 }
 
 -(void)finishFileDownload:(SeafFile<SeafDownloadDelegate> *)file result:(BOOL)result {
@@ -358,11 +354,9 @@
         Debug("finish file task %@: %ld", file.name, (unsigned long)self.fileDownloadingCount);
         if (result) {
             [self.fileQueuedTasks removeObject:file];
-            [self.fileDownloadingTasks removeObject:file];
             if (self.finishBlock) {
                 self.finishBlock(file);
             }
-            [self.fileTasks addObject:file];
             if (self.fileDownloadingCount > 0) {
                 self.fileDownloadingCount -= 1;
             }

@@ -47,7 +47,6 @@
             self.progressView.hidden = YES;
         } else {
             self.progressView.hidden = NO;
-            self.progressView.observedProgress = sfile.progress;
             self.statusLabel.text = @"";
         }
     } else if (sfile.state == SEAF_DENTRY_SUCCESS){
@@ -88,6 +87,7 @@
 - (void)download:(SeafBase *)entry progress:(float)progress
 {
     Debug(@"%f", progress);
+    self.progressView.progress = progress;
 }
 
 - (void)download:(SeafBase *)entry complete:(BOOL)updated

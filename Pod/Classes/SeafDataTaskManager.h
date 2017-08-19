@@ -25,13 +25,13 @@ typedef void(^DownLoadFinshBlock)(SeafFile *file);
 
 @property (nonatomic, strong) NSMutableArray *fileTasks;
 @property (nonatomic, strong) NSMutableArray *fileQueuedTasks;
-@property (nonatomic, strong) NSMutableArray *fileDownloadingTasks;
 @property (nonatomic, strong) NSMutableArray *thumbTasks;
 @property (nonatomic, strong) NSMutableArray *thumbQueuedTasks;
 @property (nonatomic, strong) NSMutableArray *avatarTasks;
 
 @property (nonatomic, copy) SyncBlock trySyncBlock;
 @property (nonatomic, copy) DownLoadFinshBlock finishBlock;
+
 
 + (SeafDataTaskManager *)sharedObject;
 
