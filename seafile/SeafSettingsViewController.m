@@ -671,7 +671,7 @@ enum {
         NSLocalizedString(@"Account Info", @"Seafile"),
         NSLocalizedString(@"Camera Upload", @"Seafile"),
         NSLocalizedString(@"Contacts Backup", @"Seafile"),
-        NSLocalizedString(@"upload & download", @"Seafile"),
+        NSLocalizedString(@"Upload & Download", @"Seafile"),
         NSLocalizedString(@"Cache", @"Seafile"),
         NSLocalizedString(@"Encrypted Libraries", @"Seafile"),
         NSLocalizedString(@"About", @"Seafile"),

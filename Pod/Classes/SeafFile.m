@@ -867,12 +867,13 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
 
 - (void)downloadComplete:(BOOL)updated
 {
-    [self.delegate download:self complete:updated];
-    self.state = SEAF_DENTRY_SUCCESS;
-    [SeafDataTaskManager.sharedObject finishFileDownload:self result:updated];
-    if (self.fileDidDownloadBlock)
-        self.fileDidDownloadBlock(self, updated);
-
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.delegate download:self complete:updated];
+        self.state = SEAF_DENTRY_SUCCESS;
+        [SeafDataTaskManager.sharedObject finishFileDownload:self result:updated];
+        if (self.fileDidDownloadBlock)
+            self.fileDidDownloadBlock(self, updated);
+    });
 }
 
 - (void)downloadFailed:(NSError *)error
