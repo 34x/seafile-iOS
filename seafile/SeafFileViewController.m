@@ -20,6 +20,7 @@
 #import "SeafPhotoThumb.h"
 #import "SeafStorage.h"
 #import "SeafDataTaskManager.h"
+#import "SeafGlobal.h"
 
 #import "FileSizeFormatter.h"
 #import "SeafDateFormatter.h"

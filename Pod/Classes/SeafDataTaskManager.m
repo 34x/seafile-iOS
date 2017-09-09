@@ -14,37 +14,18 @@
 @interface SeafDataTaskManager()
 
 @property NSUserDefaults *storage;
-
+@property (nonatomic, strong) NSMutableArray *thumbTasks;
+@property (nonatomic, strong) NSMutableArray *thumbQueuedTasks;
+@property (nonatomic, strong) NSMutableArray *avatarTasks;
+@property (nonatomic, strong) NSMutableDictionary *accountQueueDict;
 @property (retain) NSMutableArray *uTasks;
 @property (retain) NSMutableArray *uploadingTasks;
-
-@property (nonatomic, assign) NSInteger uploadingCount;
-@property (nonatomic, assign) NSInteger activeUploadingCount;
-
-@property (nonatomic, assign) NSInteger activeFileDownloadingCount;
-@property (nonatomic, assign) NSInteger activeThumbDownloadingCount;
-
 @property unsigned long failedNum;
-
 @property NSTimer *taskTimer;
 
 @end
 
 @implementation SeafDataTaskManager
-
--(NSMutableArray *)fileQueuedTasks {
-    if (!_fileQueuedTasks) {
-        _fileQueuedTasks = [NSMutableArray array];
-    }
-    return _fileQueuedTasks;
-}
-
-- (NSMutableArray *)fileTasks {
-    if (!_fileTasks) {
-        _fileTasks = [NSMutableArray array];
-    }
-    return _fileTasks;
-}
 
 - (NSMutableArray *)thumbTasks {
     if (!_thumbTasks) {
@@ -58,6 +39,13 @@
         _thumbQueuedTasks = [NSMutableArray array];
     }
     return _thumbQueuedTasks;
+}
+
+- (NSMutableDictionary *)accountQueueDict {
+    if (!_accountQueueDict) {
+        _accountQueueDict = [NSMutableDictionary dictionary];
+    }
+    return _accountQueueDict;
 }
 
 - (NSMutableArray *)avatarTasks {
@@ -84,8 +72,6 @@
         _uTasks = [NSMutableArray new];
         _uploadingTasks = [NSMutableArray new];
         
-        self.activeFileDownloadingCount = 0;
-        self.activeThumbDownloadingCount = 0;
         [self startTimer];
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cacheCleared:) name:@"clearCache" object:nil];
@@ -298,81 +284,38 @@
 
 #pragma mark- download file
 -(void)addFileDownloadTask:(SeafFile *)file {
-    @synchronized (self.fileTasks) {
-        if (file.state != SEAF_DENTRY_SUCCESS) {
-            if (![self.fileTasks containsObject:file]) {
-                [self.fileTasks addObject:file];
-                [self tryDownLoadFile];
-                Debug("Added file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
-            }
-        }
-    }
-}
-
-- (void)tryDownLoadFile {
-    if (self.fileTasks.count == 0) return;
-    for (SeafFile *file in self.fileTasks) {
-        @synchronized (self.fileQueuedTasks) {
-            if (![self.fileQueuedTasks containsObject:file]) {
-                [self.fileQueuedTasks addObject:file];
-            }
-        }
-    }
-    [self startNextDownloadTask];
-}
-
-- (void)startNextDownloadTask {
-    if ([self isActiveDownloadingFileCountBelowMaximumLimit]) {
-        SeafFile *file = [self dequeueTask];
-        if (file) {
-            [file download];
-            self.activeFileDownloadingCount += 1;
-            @synchronized (self.fileTasks) {
-                [self.fileTasks removeObject:file];
-            }
-            Debug("downloading file task %@: %ld", file.name, (unsigned long)self.fileQueuedTasks.count);
-            [self startNextDownloadTask];
-        }
-    }
+    SeafDownloadAccountQueue *accountQueue = [self getAccountQueueWithFileIndectifier:file.userIdentifier];
+    [accountQueue addFileDownloadTask:file];
     if (self.trySyncBlock) {
-        self.trySyncBlock();
+        self.trySyncBlock(file);
+    }
+}
+
+-(SeafDownloadAccountQueue *)getAccountQueueWithFileIndectifier:(NSString *)identifier {
+    @synchronized(self. accountQueueDict) {
+        SeafDownloadAccountQueue *accountQueue = [self.accountQueueDict valueForKey:identifier];
+        if (!accountQueue) {
+            accountQueue = [[SeafDownloadAccountQueue alloc] init];
+            [self.accountQueueDict setObject:accountQueue forKey:identifier];
+        }
+        return accountQueue;
     }
 }
 
 -(void)finishFileDownload:(SeafFile<SeafDownloadDelegate> *)file result:(BOOL)result {
-    if ([self.fileQueuedTasks containsObject:file]) {
-        Debug("finish file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
-        if (result) {
-            @synchronized (self.fileQueuedTasks) {
-                 [self.fileQueuedTasks removeObject:file];
-            }
-            if (self.finishBlock) {
-                self.finishBlock(file);
-            }
+    SeafDownloadAccountQueue *task = [self.accountQueueDict valueForKey:file.userIdentifier];
+    if (task) {
+        [task finishFileDownload:file result:result];
+        if (self.finishBlock) {
+            self.finishBlock(file);
         }
-        if (self.activeFileDownloadingCount > 0) {
-            self.activeFileDownloadingCount -= 1;
-        }
-        if (self.trySyncBlock) {
-            self.trySyncBlock();
-        }
-        [self startNextDownloadTask];
     }
 }
 
-- (SeafFile *)dequeueTask{
-    SeafFile *task = nil;
-    task = [self.fileQueuedTasks firstObject];
+- (SeafDownloadAccountQueue *)accountQueueForConnection:(SeafConnection *)connection {
+    NSString *identifier = [NSString stringWithFormat:@"%@%@",connection.host,connection.username];
+    SeafDownloadAccountQueue *task = [self.accountQueueDict valueForKey:identifier];
     return task;
-}
-
-- (NSInteger)downloadingNum
-{
-    return self.fileTasks.count;
-}
-
-- (BOOL)isActiveDownloadingFileCountBelowMaximumLimit {
-    return self.activeFileDownloadingCount < 3;
 }
 
 #pragma mark- download thumb
@@ -381,62 +324,54 @@
         if (![self.thumbTasks containsObject:thumb]) {
             [self.thumbTasks addObject:thumb];
             Debug("Added thumb task %@: %ld", thumb.name, (unsigned long)self.thumbTasks.count);
-            [self tryDownloadThumb];
+            [self tryDownLoadThumb];
         }
     }
 }
 
-- (void)tryDownloadThumb {
+- (void)tryDownLoadThumb {
     if (self.thumbTasks.count == 0) return;
-    for (SeafThumb *thumb in self.thumbTasks) {
-        @synchronized (self.thumbQueuedTasks) {
-            if (![self.thumbQueuedTasks containsObject:thumb]) {
-                [self.thumbQueuedTasks addObject:thumb];
+    while ([self isActiveDownloadingThumbCountBelowMaximumLimit]) {
+        SeafThumb *thumb = nil;
+        @synchronized (self.thumbTasks) {
+            if (self.thumbTasks.count == 0) {
+                return;
             }
+            thumb = self.thumbTasks.firstObject;
+            [self.thumbTasks removeObject:thumb];
         }
-    }
-    [self startNextThumbTask];
-}
-
-- (void)startNextThumbTask {
-    if ([self isActiveDownloadingThumbCountBelowMaximumLimit]) {
-        SeafThumb *thumb = [self dequeueThumb];
-        if (thumb) {
-            self.activeThumbDownloadingCount += 1;
-            [thumb download];
+        if (!thumb) return;
+        @synchronized (self.thumbQueuedTasks) {
+            [self.thumbQueuedTasks addObject:thumb];
         }
+        [thumb download];
     }
 }
 
-- (SeafThumb *)dequeueThumb{
-    SeafThumb *task = nil;
-    task = [self.thumbQueuedTasks firstObject];
-    return task;
-}
-
--(void)finishThumbDownload:(SeafThumb<SeafDownloadDelegate> *)thumb result:(BOOL)result {
+- (void)finishThumbDownload:(SeafThumb<SeafDownloadDelegate> *)thumb result:(BOOL)result {
     if ([self.thumbQueuedTasks containsObject:thumb]) {
         if (result) {
             @synchronized (self.thumbQueuedTasks) {
                 [self.thumbQueuedTasks removeObject:thumb];
             }
+        } else if (!thumb.retryable) {
+            @synchronized (self.thumbQueuedTasks) {
+                [self.thumbQueuedTasks removeObject:thumb];
+            }
         }
-        self.activeThumbDownloadingCount -= 1;
-        [self startNextThumbTask];
+        [self tryDownLoadThumb];
     }
 }
 
 - (BOOL)isActiveDownloadingThumbCountBelowMaximumLimit {
-    return self.activeThumbDownloadingCount < 6;
+    return self.thumbQueuedTasks.count < 3;
 }
-
 
 - (void)addAvatarDownloadTask:(SeafUserAvatar *)avatar {
     if (![self.avatarTasks containsObject:avatar]) {
         [self.avatarTasks addObject:avatar];
         [avatar download];
     }
-    
 }
 
 -(void)finishAvatarDownloadTask:(SeafAvatar *)avatar result:(BOOL)result
@@ -450,26 +385,105 @@
 
 - (void)removeBackgroundDownloadTask:(id<SeafDownloadDelegate>)task
 {
-    if ([task isKindOfClass:[SeafFile class]]) {
-        [self.fileTasks removeObject:task];
-        [self.fileQueuedTasks removeObject:task];
-    } else if ([task isKindOfClass:[SeafThumb class]]) {
-        [self.fileTasks removeObject:task];
-        [self.fileQueuedTasks removeObject:task];
+    if ([task isKindOfClass:[SeafThumb class]]) {
+        [self.thumbTasks removeObject:task];
+        [self.thumbQueuedTasks removeObject:task];
     } else if ([task isKindOfClass:[SeafAvatar class]]) {
         [self.avatarTasks removeObject:task];
     }
 }
 
 - (void)cacheCleared:(NSNotification*)notification{
-    [self.fileTasks removeAllObjects];
-    [self.fileQueuedTasks removeAllObjects];
+    [self.accountQueueDict removeAllObjects];
     [self.thumbTasks removeAllObjects];
-    [self.thumbQueuedTasks removeAllObjects];
     [self.avatarTasks removeAllObjects];
 }
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
+@end
+
+@implementation SeafDownloadAccountQueue
+
+- (NSMutableArray *)fileTasks {
+    if (!_fileTasks) {
+        _fileTasks = [NSMutableArray array];
+    }
+    return _fileTasks;
+}
+
+- (NSMutableArray *)fileQueuedTasks {
+    if (!_fileQueuedTasks) {
+        _fileQueuedTasks = [NSMutableArray array];
+    }
+    return _fileQueuedTasks;
+}
+
+- (NSMutableArray *)allFileTasks {
+    NSMutableArray *arr = [NSMutableArray new];
+    [arr addObjectsFromArray:self.fileTasks];
+    [arr addObjectsFromArray:self.fileQueuedTasks];
+    return arr;
+}
+
+- (void)addFileDownloadTask:(SeafFile *)file {
+    @synchronized (self.fileTasks) {
+        if (![self.fileTasks containsObject:file] && ![self.fileQueuedTasks containsObject:file]) {
+            [self.fileTasks addObject:file];
+            Debug("Added file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
+        }
+    }
+    [self tryDownLoadFile];
+}
+
+- (void)tryDownLoadFile {
+    if (self.fileTasks.count == 0) return;
+    while ([self isActiveDownloadingFileCountBelowMaximumLimit]) {
+        SeafFile *file = nil;
+        @synchronized (self.fileTasks) {
+            if (self.fileTasks.count == 0) {
+                return;
+            }
+            // TODO if file last failed download timestamp < now-1min, skip that task
+            for (int i = 0; i < self.fileTasks.count; i++) {
+                file = [self.fileTasks objectAtIndex:i];
+                if (file.state != SEAF_DENTRY_FAILURE && file.failTime < ([[NSDate new] timeIntervalSince1970] - 60)) {
+                    [self.fileTasks removeObject:file];
+                    break;
+                }
+            }
+        }
+        if (!file) return;
+        @synchronized (self.fileQueuedTasks) {
+            [self.fileQueuedTasks addObject:file];
+        }
+        [file download];
+    }
+}
+
+- (void)finishFileDownload:(SeafFile<SeafDownloadDelegate> *)file result:(BOOL)result {
+    if ([self.fileQueuedTasks containsObject:file]) {
+        Debug("finish file task %@: %ld", file.name, (unsigned long)self.fileTasks.count);
+        if (result) {
+            @synchronized (self.fileQueuedTasks) { // task succeeded, remove it
+                [self.fileQueuedTasks removeObject:file];
+            }
+        } else if (file.retryable) { // Task fail, add to the tail of queue for retry
+            @synchronized (self.fileTasks) {
+                [self.fileTasks addObject:file];
+            }
+        }
+        [self tryDownLoadFile];
+    }
+}
+
+- (NSInteger)downloadingNum {
+    return self.fileTasks.count + self.fileQueuedTasks.count;
+}
+
+- (BOOL)isActiveDownloadingFileCountBelowMaximumLimit {
+    return self.fileQueuedTasks.count < 3;
+}
+
 @end

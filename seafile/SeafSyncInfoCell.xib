@@ -91,6 +91,7 @@
                 <outlet property="pathLabel" destination="7Hd-N5-m8B" id="qNB-MY-ETW"/>
                 <outlet property="progressView" destination="ED7-wW-y05" id="Bhe-2d-pl0"/>
                 <outlet property="sizeLabel" destination="Fkw-Kf-9WT" id="FgC-lE-66o"/>
+                <outlet property="sizeLabelLeftConstraint" destination="ytU-oM-VW4" id="opi-ax-sqz"/>
                 <outlet property="statusLabel" destination="AG8-he-8Ay" id="DFL-DS-Ehf"/>
             </connections>
             <point key="canvasLocation" x="119.5" y="76"/>

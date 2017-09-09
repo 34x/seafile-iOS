@@ -80,6 +80,13 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
     return str;
 }
 
+- (NSString *)userIdentifier {
+    if (!_userIdentifier)  {
+        _userIdentifier = [NSString stringWithFormat:@"%@%@", self->connection.host, self->connection.username];
+    }
+    return _userIdentifier;
+}
+
 - (NSString *)downloadTempPath:(NSString *)objId
 {
     return [SeafStorage.sharedObject.tempDir stringByAppendingPathComponent:objId];
@@ -153,6 +160,7 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
 {
     [self clearDownloadContext];
     self.state = SEAF_DENTRY_FAILURE;
+    self.failTime = [[NSDate new] timeIntervalSince1970];
     [SeafDataTaskManager.sharedObject finishFileDownload:self result:false];
     [self downloadFailed:error];
 }
@@ -491,9 +499,7 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
 {
     if (_icon) return _icon;
     if (self.isImageFile && self.oid) {
-        if (self.image) {
-            [self performSelectorInBackground:@selector(genThumb) withObject:nil];
-        } else if (![connection isEncrypted:self.repoId]) {
+        if (![connection isEncrypted:self.repoId]) {
             UIImage *img = [self thumb];
             if (img)
                 return _thumb;
@@ -501,6 +507,8 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
                 SeafThumb *thb = [[SeafThumb alloc] initWithSeafPreviewIem:self];
                 [SeafDataTaskManager.sharedObject addThumbDownloadTask:thb];
             }
+        } else if (self.image) {
+            [self performSelectorInBackground:@selector(genThumb) withObject:nil];
         }
     }
     return [super icon];
@@ -663,8 +671,9 @@ typedef void (^SeafThumbCompleteBlock)(BOOL ret);
     if (!self.ooid)
         return nil;
     NSString *path = [SeafStorage.sharedObject documentPath:self.ooid];
-    NSString *cachePath = [[SeafStorage.sharedObject tempDir] stringByAppendingPathComponent:self.ooid];
-    return [Utils imageFromPath:path withMaxSize:IMAGE_MAX_SIZE cachePath:cachePath andFileName:self.name];
+    NSString *name = [@"cacheimage-" stringByAppendingString:self.ooid];
+    NSString *cachePath = [[SeafStorage.sharedObject tempDir] stringByAppendingPathComponent:name];
+    return [Utils imageFromPath:path withMaxSize:IMAGE_MAX_SIZE cachePath:cachePath];
 }
 
 - (long long)filesize

@@ -398,7 +398,10 @@ enum {
     [self configureView];
     
     WS(weakSelf);
-    SeafDataTaskManager.sharedObject.trySyncBlock = ^{
+    SeafDataTaskManager.sharedObject.trySyncBlock = ^(SeafFile *file) {
+        [weakSelf updateSyncInfo];
+    };
+    SeafDataTaskManager.sharedObject.finishBlock = ^(SeafFile *file) {
         [weakSelf updateSyncInfo];
     };
 }
@@ -473,8 +476,9 @@ enum {
 }
 
 -(void)updateSyncInfo{
-    _uploadingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.backgroundUploadingNum];
-    _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)SeafDataTaskManager.sharedObject.downloadingNum];
+    NSInteger downloadingNum = [[SeafDataTaskManager.sharedObject accountQueueForConnection:self.connection] downloadingNum];
+    _downlingCell.detailTextLabel.text = [NSString stringWithFormat:@"%lu",(long)downloadingNum];
+    [self.tableView reloadData];
 }
 
 - (void)updateAccountInfo
@@ -525,7 +529,6 @@ enum {
     if (filename) {
         [SVProgressHUD showWithStatus:[NSString stringWithFormat:NSLocalizedString(@"Contacts will be backuped as: %@ ", @"Seafile"), filename]];
     }
-
 }
 
 #pragma mark - Table view delegate
@@ -690,17 +693,19 @@ enum {
             remainStr = [NSString stringWithFormat:NSLocalizedString(@"%ld photos remain", @"Seafile"), num];
         }
 #if DEBUG
+        NSInteger downloadingNum = [[SeafDataTaskManager.sharedObject accountQueueForConnection:self.connection] downloadingNum];
         remainStr = [remainStr stringByAppendingFormat:@"  U:%lu D:%lu",
                      SeafDataTaskManager.sharedObject.backgroundUploadingNum,
-                     (long)SeafDataTaskManager.sharedObject.downloadingNum];
+                     (long)downloadingNum];
 #endif
         return [sectionNames[section] stringByAppendingFormat:@"\t %@", remainStr];
     }
 #if DEBUG
     else if (section == SECTION_CAMERA) {
+        NSInteger downloadingNum = [[SeafDataTaskManager.sharedObject accountQueueForConnection:self.connection] downloadingNum];
         NSString *remainStr = [NSString stringWithFormat:@"  U:%lu D:%lu",
                                SeafDataTaskManager.sharedObject.backgroundUploadingNum,
-                               (long)SeafDataTaskManager.sharedObject.downloadingNum];
+                               (long)downloadingNum];
         return [sectionNames[section] stringByAppendingFormat:@"\t %@", remainStr];
     }
 #endif

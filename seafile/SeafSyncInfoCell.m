@@ -11,6 +11,7 @@
 #import "FileSizeFormatter.h"
 
 @interface SeafSyncInfoCell ()
+@property (weak, nonatomic) IBOutlet NSLayoutConstraint *sizeLabelLeftConstraint;
 
 @end
 
@@ -41,8 +42,10 @@
     if (sfile.state == SEAF_DENTRY_INIT){
         self.progressView.hidden = YES;
         self.statusLabel.text = @"";
+        self.sizeLabelLeftConstraint.constant = 0;
     } else if (sfile.state == SEAF_DENTRY_LOADING) {
         self.progressView.hidden = NO;
+        self.sizeLabelLeftConstraint.constant = 0;
         if (sfile.progress.fractionCompleted == 1.0) {
             self.progressView.hidden = YES;
         } else {
@@ -51,10 +54,12 @@
         }
     } else if (sfile.state == SEAF_DENTRY_SUCCESS){
         self.progressView.hidden = YES;
+        self.sizeLabelLeftConstraint.constant = 8;
         self.statusLabel.text = NSLocalizedString(@"Completed", @"Seafile");
     } else if (sfile.state == SEAF_DENTRY_FAILURE) {
         self.progressView.hidden = YES;
         self.statusLabel.text = NSLocalizedString(@"Failed", @"Seafile");
+        self.sizeLabelLeftConstraint.constant = 8;
     }
 }
 

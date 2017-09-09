@@ -15,23 +15,16 @@
 #import "SeafFile.h"
 #import "SeafThumb.h"
 #import "SeafAvatar.h"
+@class SeafDownloadAccountQueue;
 
-typedef void(^SyncBlock)();
+typedef void(^SyncBlock)(SeafFile *file);
 typedef void(^DownLoadFinshBlock)(SeafFile *file);
 // Manager for background download/upload tasks, retry if failed.
 @interface SeafDataTaskManager : NSObject
 
 @property (readonly) ALAssetsLibrary *assetsLibrary;
-
-@property (nonatomic, strong) NSMutableArray *fileTasks;
-@property (nonatomic, strong) NSMutableArray *fileQueuedTasks;
-@property (nonatomic, strong) NSMutableArray *thumbTasks;
-@property (nonatomic, strong) NSMutableArray *thumbQueuedTasks;
-@property (nonatomic, strong) NSMutableArray *avatarTasks;
-
 @property (nonatomic, copy) SyncBlock trySyncBlock;
 @property (nonatomic, copy) DownLoadFinshBlock finishBlock;
-
 
 + (SeafDataTaskManager *)sharedObject;
 
@@ -49,7 +42,7 @@ typedef void(^DownLoadFinshBlock)(SeafFile *file);
 
 - (void)addFileDownloadTask:(SeafFile*)file;
 - (void)finishFileDownload:(SeafFile<SeafDownloadDelegate>*)file result:(BOOL)result;
-- (NSInteger)downloadingNum;
+- (SeafDownloadAccountQueue*)accountQueueForConnection:(SeafConnection*)connection;
 
 - (void)addThumbDownloadTask:(SeafThumb*)thumb;
 - (void)finishThumbDownload:(SeafThumb<SeafDownloadDelegate> *)thumb result:(BOOL)result;
@@ -58,5 +51,18 @@ typedef void(^DownLoadFinshBlock)(SeafFile *file);
 
 - (void)addAvatarDownloadTask:(SeafAvatar*)avatar;
 - (void)finishAvatarDownloadTask:(SeafAvatar*)avatar result:(BOOL)result;
+
+@end
+
+@interface SeafDownloadAccountQueue : NSObject
+
+@property (nonatomic, strong) NSMutableArray *fileTasks;
+@property (nonatomic, strong) NSMutableArray *fileQueuedTasks;
+@property (nonatomic, readonly) NSMutableArray *allFileTasks;
+
+- (void)addFileDownloadTask:(SeafFile*)file;
+- (void)finishFileDownload:(SeafFile<SeafDownloadDelegate>*)file result:(BOOL)result;
+- (NSInteger)downloadingNum;
+- (BOOL)isActiveDownloadingFileCountBelowMaximumLimit;
 
 @end

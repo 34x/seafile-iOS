@@ -12,23 +12,25 @@
 #import "SeafDataTaskManager.h"
 #import "SeafFile.h"
 #import "SeafPhoto.h"
+#import "SeafGlobal.h"
 
 static NSString *cellIdentifier = @"SeafSyncInfoCell";
 
 @interface SeafSyncInfoViewController ()<SeafDentryDelegate>
 
-@property (nonatomic, strong) NSMutableArray *fileArray;
+@property (nonatomic, strong) NSMutableArray *finishArray;
 @property (nonatomic, strong) NSMutableArray *downloadingArray;
+@property (nonatomic, strong) SeafConnection *connection;
 
 @end
 
 @implementation SeafSyncInfoViewController
 
-- (NSMutableArray *)fileArray {
-    if (!_fileArray) {
-        _fileArray = [NSMutableArray array];
+- (NSMutableArray *)finishArray {
+    if (!_finishArray) {
+        _finishArray = [NSMutableArray array];
     }
-    return _fileArray;
+    return _finishArray;
 }
 
 - (NSMutableArray *)downloadingArray {
@@ -64,18 +66,27 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
         self.navigationItem.title = @"正在上传";
     }
     
+    self.connection = [SeafGlobal sharedObject].connection;
+    
     [self addToFileArray];
 
     WS(weakSelf);
-    SeafDataTaskManager.sharedObject.trySyncBlock = ^{
-        @autoreleasepool {
-            [weakSelf addToFileArray];
+    SeafDataTaskManager.sharedObject.trySyncBlock = ^(SeafFile *file) {
+        if (![weakSelf.downloadingArray containsObject:file]) {
+            if (file->connection == self.connection) {
+                [weakSelf.downloadingArray addObject:file];
+            }
         }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf.tableView reloadData];
+        });
     };
 
     SeafDataTaskManager.sharedObject.finishBlock = ^(SeafFile *file) {
-        [weakSelf.downloadingArray removeObject:file];
-        [weakSelf.fileArray addObject:file];
+        if (file->connection == self.connection) {
+            [weakSelf.downloadingArray removeObject:file];
+            [weakSelf.finishArray addObject:file];
+        }
         dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf.tableView reloadData];
         });
@@ -83,18 +94,17 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
 }
 
 - (void)addToFileArray {
-    if (SeafDataTaskManager.sharedObject.fileTasks.count > 0) {
-        for (SeafFile *file in SeafDataTaskManager.sharedObject.fileTasks) {
-            if (file.state != SEAF_DENTRY_SUCCESS || file.state != SEAF_DENTRY_FAILURE) {
-                if (![self.downloadingArray containsObject:file]) {
-                    [self.downloadingArray addObject:file];
-                }
-            }
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.tableView reloadData];
-            });
+    SeafDownloadAccountQueue *task = [SeafDataTaskManager.sharedObject accountQueueForConnection:self.connection];
+    for (SeafFile *file in task.allFileTasks) {
+        if (file.state == SEAF_DENTRY_SUCCESS) {
+            [self.finishArray addObject:file];
+        } else {
+            [self.downloadingArray addObject:file];
         }
     }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.tableView reloadData];
+    });
 }
 
 #pragma mark - Table view data source
@@ -107,7 +117,7 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
     if (section == 0) {
         return self.downloadingArray.count;
     } else {
-        return self.fileArray.count;
+        return self.finishArray.count;
     }
 }
 
@@ -138,15 +148,15 @@ static NSString *cellIdentifier = @"SeafSyncInfoCell";
     
     if (self.detailType == DOWNLOAD_DETAIL) {
         if (indexPath.section == 0) {
-            SeafFile *sfile = self.downloadingArray[indexPath.row];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [cell showCellWithSFile:sfile];
-            });
+            if (self.downloadingArray.count > 0) {
+                if (indexPath.row < self.downloadingArray.count-1) {
+                    SeafFile *sfile = self.downloadingArray[indexPath.row];
+                    [cell showCellWithSFile:sfile];
+                }
+            }
         } else {
-            SeafFile *sfile = self.fileArray[indexPath.row];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [cell showCellWithSFile:sfile];
-            });
+            SeafFile *sfile = self.finishArray[indexPath.row];
+             [cell showCellWithSFile:sfile];
         }
     }
     return cell;
